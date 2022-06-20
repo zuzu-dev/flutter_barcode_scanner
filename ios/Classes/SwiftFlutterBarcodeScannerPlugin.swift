@@ -592,27 +592,26 @@ let outputImage = UIGraphicsGetImageFromCurrentImageContext()
 
 /// Extension for view controller
 extension BarcodeScannerViewController: AVCaptureMetadataOutputObjectsDelegate,AVCapturePhotoCaptureDelegate  {
-      public  func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-          
+    public  func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         isCapturing = false
-              if let imageData = photo.fileDataRepresentation(){
-            
+        if let imageData = photo.fileDataRepresentation(){
             let image = UIImage(data: imageData)
-          let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-
-              let filename = paths[0].appendingPathComponent(barcode+".jpg")
-            try? image?.jpegData(compressionQuality: 1)?.write(to: filename)
-              }
-     }
+            let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+            let filename = paths[0].appendingPathComponent(barcode+".jpg")
+            if !FileManager.default.fileExists(atPath: filename) {
+                try? image?.jpegData(compressionQuality: 1)?.write(to: filename)
+            }
+        }
+    }
     public func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         // Check if the metadataObjects array is not nil and it contains at least one object.
         let photoSettings = AVCapturePhotoSettings()
-if !isCapturing {
-    isCapturing = true
-    photoOutput.capturePhoto(with: photoSettings, delegate: self)
-}else{
-    return
-}
+        if !isCapturing {
+            isCapturing = true
+            photoOutput.capturePhoto(with: photoSettings, delegate: self)
+        }else{
+            return
+        }
         if metadataObjects.count == 0 {
             qrCodeFrameView?.frame = CGRect.zero
             return
@@ -625,27 +624,11 @@ if !isCapturing {
             //qrCodeFrameView?.frame = barCodeObject!.bounds
             if metadataObj.stringValue != nil {
                 barcode=metadataObj.stringValue ?? "";  
-                // __________________________________________________________________MODIFICATION_START
-                // checkpoint: first capture.
-                // https://stackoverflow.com/questions/52777800/rendering-a-calayer-to-an-image-with-arbitrary-size
-          
-                //let barcodeObj = videoPreviewLayer?.transformedMetadataObject(for: metadataObj)
-                //let image = imageFromLayer(barcodeObj)
-                // let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-                // if let data = image.jpegData(compressionQuality: 1) {
-                //     let filename = paths[0].appendingPathComponent(metadataObj.stringValue)
-                //     try? data.write(to: filename)
-                // }
-
-
                 if(SwiftFlutterBarcodeScannerPlugin.isContinuousScan){
                     SwiftFlutterBarcodeScannerPlugin.onBarcodeScanReceiver(barcode: metadataObj.stringValue!)
                 }else{
                     launchApp(decodedURL: metadataObj.stringValue!)
                 }
-
-                // __________________________________________________________________MODIFICATION_END
-
             }
         }
     }
