@@ -227,7 +227,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
             frameWidth = 0;
             frameHeight = 0;
         }
-        CentralDetector centralDetector = new CentralDetector(barcodeDetector, frameWidth, frameHeight);
+        CentralDetector centralDetector = new CentralDetector(barcodeDetector, frameWidth, frameHeight, context);
 
         centralDetector.setProcessor(
                 new MultiProcessor.Builder<>(barcodeFactory).build());
