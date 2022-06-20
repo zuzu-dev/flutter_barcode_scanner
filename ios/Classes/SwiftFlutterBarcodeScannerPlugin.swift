@@ -23,6 +23,7 @@ public class SwiftFlutterBarcodeScannerPlugin: NSObject, FlutterPlugin, ScanBarc
     static var barcodeStream:FlutterEventSink?=nil
     public static var scanMode = ScanMode.QR.index
     
+    
     public static func register(with registrar: FlutterPluginRegistrar) {
         viewController = (UIApplication.shared.delegate?.window??.rootViewController)!
         let channel = FlutterMethodChannel(name: "flutter_barcode_scanner", binaryMessenger: registrar.messenger())
@@ -129,6 +130,7 @@ public class SwiftFlutterBarcodeScannerPlugin: NSObject, FlutterPlugin, ScanBarc
     }
     
     public func userDidScanWith(barcode: String){
+        // checkpoint: barcode is placed in pending result.
         pendingResult(barcode)
     }
     
@@ -172,6 +174,10 @@ class BarcodeScannerViewController: UIViewController {
     private var isOrientationPortrait = true
     var screenHeight:CGFloat = 0
     let captureMetadataOutput = AVCaptureMetadataOutput()
+    private let photoOutput = AVCapturePhotoOutput()
+    public  var barcode="12345.jpeg";
+
+private var isCapturing = false
     
     private lazy var xCor: CGFloat! = {
         return self.isOrientationPortrait ? (screenSize.width - (screenSize.width*0.8))/2 :
@@ -277,6 +283,7 @@ class BarcodeScannerViewController: UIViewController {
             captureMetadataOutput.rectOfInterest = CGRect(x: xCor, y: yCor, width: captureRectWidth, height: screenHeight)
             if captureSession.outputs.isEmpty {
                 captureSession.addOutput(captureMetadataOutput)
+                captureSession.addOutput(photoOutput)
             }
             // Set delegate and use the default dispatch queue to execute the call back
             captureMetadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
@@ -563,7 +570,10 @@ class BarcodeScannerViewController: UIViewController {
         if presentedViewController != nil {
             return
         }
+        // checkpoint: decodedURL is the barcode.
         if self.delegate != nil {
+            // print("____launchApp____")
+            // print(decodedURL)
             self.dismiss(animated: true, completion: {
                 self.delegate?.userDidScanWith(barcode: decodedURL)
             })
@@ -571,10 +581,38 @@ class BarcodeScannerViewController: UIViewController {
     }
 }
 
+
+func imageFromLayer(layer:CALayer) -> UIImage {
+    UIGraphicsBeginImageContextWithOptions(layer.frame.size, layer.isOpaque, 0)
+    layer.render(in: UIGraphicsGetCurrentContext()!)
+let outputImage = UIGraphicsGetImageFromCurrentImageContext()
+    UIGraphicsEndImageContext()
+    return outputImage!
+}
+
 /// Extension for view controller
-extension BarcodeScannerViewController: AVCaptureMetadataOutputObjectsDelegate {
+extension BarcodeScannerViewController: AVCaptureMetadataOutputObjectsDelegate,AVCapturePhotoCaptureDelegate  {
+      public  func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+          
+        isCapturing = false
+              if let imageData = photo.fileDataRepresentation(){
+            
+            let image = UIImage(data: imageData)
+          let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+
+              let filename = paths[0].appendingPathComponent(barcode+".jpg")
+            try? image?.jpegData(compressionQuality: 1)?.write(to: filename)
+              }
+     }
     public func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         // Check if the metadataObjects array is not nil and it contains at least one object.
+        let photoSettings = AVCapturePhotoSettings()
+if !isCapturing {
+    isCapturing = true
+    photoOutput.capturePhoto(with: photoSettings, delegate: self)
+}else{
+    return
+}
         if metadataObjects.count == 0 {
             qrCodeFrameView?.frame = CGRect.zero
             return
@@ -586,11 +624,28 @@ extension BarcodeScannerViewController: AVCaptureMetadataOutputObjectsDelegate {
             //            let barCodeObject = videoPreviewLayer?.transformedMetadataObject(for: metadataObj)
             //qrCodeFrameView?.frame = barCodeObject!.bounds
             if metadataObj.stringValue != nil {
+                barcode=metadataObj.stringValue ?? "";  
+                // __________________________________________________________________MODIFICATION_START
+                // checkpoint: first capture.
+                // https://stackoverflow.com/questions/52777800/rendering-a-calayer-to-an-image-with-arbitrary-size
+          
+                //let barcodeObj = videoPreviewLayer?.transformedMetadataObject(for: metadataObj)
+                //let image = imageFromLayer(barcodeObj)
+                // let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+                // if let data = image.jpegData(compressionQuality: 1) {
+                //     let filename = paths[0].appendingPathComponent(metadataObj.stringValue)
+                //     try? data.write(to: filename)
+                // }
+
+
                 if(SwiftFlutterBarcodeScannerPlugin.isContinuousScan){
                     SwiftFlutterBarcodeScannerPlugin.onBarcodeScanReceiver(barcode: metadataObj.stringValue!)
                 }else{
                     launchApp(decodedURL: metadataObj.stringValue!)
                 }
+
+                // __________________________________________________________________MODIFICATION_END
+
             }
         }
     }
