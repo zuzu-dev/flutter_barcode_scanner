@@ -623,9 +623,9 @@ public class CameraSource {
 
         @Override
         public void onShutter() {
-            if (mDelegate != null) {
-                mDelegate.onShutter();
-            }
+            // if (mDelegate != null) {
+            //     mDelegate.onShutter();
+            // }
         }
     }
 
