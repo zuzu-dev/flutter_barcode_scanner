@@ -597,7 +597,7 @@ extension BarcodeScannerViewController: AVCaptureMetadataOutputObjectsDelegate,A
         if let imageData = photo.fileDataRepresentation(){
             let image = UIImage(data: imageData)
             let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-            let filename = paths[0].appendingPathComponent(barcode+".jpeg")
+            let filename = paths[0].appendingPathComponent(barcode+".jpg")
             if !FileManager.default.fileExists(atPath: filename.path) {
                 try? image?.jpegData(compressionQuality: 1)?.write(to: filename)
             }
