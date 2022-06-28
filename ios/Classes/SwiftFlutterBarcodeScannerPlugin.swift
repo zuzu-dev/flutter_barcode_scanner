@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import AVFoundation
+import AudioToolbox
 
 enum ScanMode:Int{
     case QR
@@ -175,7 +176,7 @@ class BarcodeScannerViewController: UIViewController {
     var screenHeight:CGFloat = 0
     let captureMetadataOutput = AVCaptureMetadataOutput()
     private let photoOutput = AVCapturePhotoOutput()
-    public  var barcode="12345.jpeg";
+    public  var barcode="--";
 
 private var isCapturing = false
     
@@ -593,22 +594,49 @@ let outputImage = UIGraphicsGetImageFromCurrentImageContext()
 /// Extension for view controller
 extension BarcodeScannerViewController: AVCaptureMetadataOutputObjectsDelegate,AVCapturePhotoCaptureDelegate  {
     public  func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+
+
+     
         isCapturing = false
         if let imageData = photo.fileDataRepresentation(){
+          
             let image = UIImage(data: imageData)
+           
             let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+ 
             let filename = paths[0].appendingPathComponent(barcode+".jpeg")
+            
             if !FileManager.default.fileExists(atPath: filename.path) {
+                  
                 try? image?.jpegData(compressionQuality: 1)?.write(to: filename)
             }
         }
     }
+
+    public func photoOutput(_ output: AVCapturePhotoOutput, willCapturePhotoFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
+            print("[Camera]: Silent sound activated")
+            AudioServicesDisposeSystemSoundID(1108)
+        
+    }
+
+    public func photoOutput(_ output: AVCapturePhotoOutput, didCapturePhotoFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
+            AudioServicesDisposeSystemSoundID(1108)
+    }
+    
     public func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+        if barcode != "--"{
+            return
+        }
+
+       
         // Check if the metadataObjects array is not nil and it contains at least one object.
         let photoSettings = AVCapturePhotoSettings()
+         
         if !isCapturing {
             isCapturing = true
             photoOutput.capturePhoto(with: photoSettings, delegate: self)
+            
+
         }else{
             return
         }
