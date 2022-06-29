@@ -249,7 +249,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
         // at long distances.
         CameraSource.Builder builder = new CameraSource.Builder(getApplicationContext(), centralDetector)
                 .setFacing(cameraFacing)
-                .setRequestedPreviewSize(1600, 1024)
+                .setRequestedPreviewSize(1280, 720)
                 .setRequestedFps(30.0f)
                 .setFlashMode(useFlash ? Camera.Parameters.FLASH_MODE_TORCH : null);
 

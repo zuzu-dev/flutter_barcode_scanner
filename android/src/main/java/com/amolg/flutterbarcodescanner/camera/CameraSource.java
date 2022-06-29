@@ -115,6 +115,7 @@ public class CameraSource {
             Camera.Parameters.FLASH_MODE_AUTO,
             Camera.Parameters.FLASH_MODE_RED_EYE,
             Camera.Parameters.FLASH_MODE_TORCH
+
     })
     @Retention(RetentionPolicy.SOURCE)
     private @interface FlashMode {
