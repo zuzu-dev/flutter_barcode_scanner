@@ -25,6 +25,7 @@ public class SwiftFlutterBarcodeScannerPlugin: NSObject, FlutterPlugin, ScanBarc
     public static var scanMode = ScanMode.QR.index
     
     
+    
     public static func register(with registrar: FlutterPluginRegistrar) {
         viewController = (UIApplication.shared.delegate?.window??.rootViewController)!
         let channel = FlutterMethodChannel(name: "flutter_barcode_scanner", binaryMessenger: registrar.messenger())
@@ -279,13 +280,19 @@ private var isCapturing = false
             }
             // Initialize a AVCaptureMetadataOutput object and set it as the output device to the capture session.
             
+            if captureSession.canSetSessionPreset(AVCaptureSession.Preset.hd1280x720){
+                captureSession.sessionPreset=AVCaptureSession.Preset.hd1280x720;
+            }
+            
             let captureRectWidth = self.isOrientationPortrait ? (screenSize.width*0.8):(screenSize.height*0.8)
             
             captureMetadataOutput.rectOfInterest = CGRect(x: xCor, y: yCor, width: captureRectWidth, height: screenHeight)
             if captureSession.outputs.isEmpty {
+                
                 captureSession.addOutput(captureMetadataOutput)
                 captureSession.addOutput(photoOutput)
             }
+            
             // Set delegate and use the default dispatch queue to execute the call back
             captureMetadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
             captureMetadataOutput.metadataObjectTypes = supportedCodeTypes
