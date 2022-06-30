@@ -4,7 +4,6 @@ import AVFoundation
 import AudioToolbox
 
 enum ScanMode:Int{
-    case QR
     case BARCODE
     case DEFAULT
     
@@ -22,7 +21,7 @@ public class SwiftFlutterBarcodeScannerPlugin: NSObject, FlutterPlugin, ScanBarc
     var pendingResult:FlutterResult!
     public static var isContinuousScan:Bool=false
     static var barcodeStream:FlutterEventSink?=nil
-    public static var scanMode = ScanMode.QR.index
+    public static var scanMode = ScanMode.BARCODE.index
     
     
     
@@ -81,15 +80,9 @@ public class SwiftFlutterBarcodeScannerPlugin: NSObject, FlutterPlugin, ScanBarc
             SwiftFlutterBarcodeScannerPlugin.isContinuousScan = false
         }
         
-        if let scanModeReceived = args["scanMode"] as? Int {
-            if scanModeReceived == ScanMode.DEFAULT.index {
-                SwiftFlutterBarcodeScannerPlugin.scanMode = ScanMode.QR.index
-            }else{
-                SwiftFlutterBarcodeScannerPlugin.scanMode = scanModeReceived
-            }
-        }else{
-            SwiftFlutterBarcodeScannerPlugin.scanMode = ScanMode.QR.index
-        }
+       
+            SwiftFlutterBarcodeScannerPlugin.scanMode = ScanMode.BARCODE.index
+   
         
         pendingResult=result
         let controller = BarcodeScannerViewController()
@@ -162,7 +155,7 @@ class BarcodeScannerViewController: UIViewController {
                                       AVMetadataObject.ObjectType.itf14,
                                       AVMetadataObject.ObjectType.dataMatrix,
                                       AVMetadataObject.ObjectType.interleaved2of5,
-                                      AVMetadataObject.ObjectType.qr]
+                                      ]
     public var delegate: ScanBarcodeDelegate? = nil
     private var captureSession = AVCaptureSession()
     private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
@@ -249,10 +242,10 @@ private var isCapturing = false
     // Init UI components needed
     func initUIComponents(){
         if isOrientationPortrait {
-            screenHeight = (CGFloat)((SwiftFlutterBarcodeScannerPlugin.scanMode == ScanMode.QR.index) ? (screenSize.width * 0.8) : (screenSize.width * 0.5))
+            screenHeight = (CGFloat) (screenSize.width * 0.5)
             
         } else {
-            screenHeight = (CGFloat)((SwiftFlutterBarcodeScannerPlugin.scanMode == ScanMode.QR.index) ? (screenSize.height * 0.6) : (screenSize.height * 0.5))
+            screenHeight = (CGFloat) (screenSize.height * 0.5)
         }
         
         
@@ -543,13 +536,10 @@ private var isCapturing = false
         
         var stopY:CGFloat
         
-        if SwiftFlutterBarcodeScannerPlugin.scanMode == ScanMode.QR.index {
-            let w = self.isOrientationPortrait ? (screenSize.width*0.8) : (screenSize.height*0.6)
-            stopY = (yCor + w)
-        } else {
+
             let w = self.isOrientationPortrait ? (screenSize.width * 0.5) : (screenSize.height * 0.5)
             stopY = (yCor + w)
-        }
+
         scanlineStopY = stopY
     }
     
@@ -620,17 +610,25 @@ extension BarcodeScannerViewController: AVCaptureMetadataOutputObjectsDelegate,A
         }
     }
 
-    public func photoOutput(_ output: AVCapturePhotoOutput, willCapturePhotoFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
+    public func photoOutput(_ output: AVCapturePhotoOutput, willBeginCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
             print("[Camera]: Silent sound activated")
             AudioServicesDisposeSystemSoundID(1108)
         
     }
 
-    public func photoOutput(_ output: AVCapturePhotoOutput, didCapturePhotoFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
+    public func photoOutput(_ output: AVCapturePhotoOutput, willCapturePhotoFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
+            AudioServicesDisposeSystemSoundID(1108)
+    }
+
+     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto resolvedSettings: AVCaptureResolvedPhotoSettings) {
+            AudioServicesDisposeSystemSoundID(1108)
+    }
+     public func photoOutput(_ output: AVCapturePhotoOutput, didCapturePhotoFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
             AudioServicesDisposeSystemSoundID(1108)
     }
     
     public func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+
         if barcode != "--"{
             return
         }
@@ -688,10 +686,10 @@ extension BarcodeScannerViewController{
             self.screenSize = UIScreen.main.bounds
             
             if UIDevice.current.orientation == .portrait || UIDevice.current.orientation == .portraitUpsideDown {
-                self.screenHeight = (CGFloat)((SwiftFlutterBarcodeScannerPlugin.scanMode == ScanMode.QR.index) ? (self.screenSize.width * 0.8) : (self.screenSize.width * 0.5))
+                self.screenHeight = (CGFloat)( (self.screenSize.width * 0.5))
                 
             } else {
-                self.screenHeight = (CGFloat)((SwiftFlutterBarcodeScannerPlugin.scanMode == ScanMode.QR.index) ? (self.screenSize.height * 0.6) : (self.screenSize.height * 0.5))
+                self.screenHeight = (CGFloat)((self.screenSize.height * 0.5))
             }
             
             

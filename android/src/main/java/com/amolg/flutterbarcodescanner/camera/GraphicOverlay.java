@@ -25,7 +25,6 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 
-
 import com.amolg.flutterbarcodescanner.BarcodeCaptureActivity;
 import com.amolg.flutterbarcodescanner.FlutterBarcodeScannerPlugin;
 import com.amolg.flutterbarcodescanner.constants.AppConstants;
@@ -35,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
-
 
 public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
     private final Object mLock = new Object();
@@ -50,7 +48,6 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
     private float left, top, endY;
     private int rectWidth, rectHeight, frames, lineColor, lineWidth;
     private boolean revAnimation;
-
 
     public static abstract class Graphic {
         private GraphicOverlay mOverlay;
@@ -90,8 +87,7 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
         super(context, attrs);
 
         rectWidth = AppConstants.BARCODE_RECT_WIDTH;
-        rectHeight = BarcodeCaptureActivity.SCAN_MODE == BarcodeCaptureActivity.SCAN_MODE_ENUM.QR.ordinal()
-                ? AppConstants.BARCODE_RECT_HEIGHT : (int) (AppConstants.BARCODE_RECT_HEIGHT / 1.5);
+        rectHeight = (int) (AppConstants.BARCODE_RECT_HEIGHT / 1.5);
 
         lineColor = Color.parseColor(FlutterBarcodeScannerPlugin.lineColor);
 
@@ -99,14 +95,12 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
         frames = AppConstants.BARCODE_FRAMES;
     }
 
-
     public void clear() {
         synchronized (mLock) {
             mGraphics.clear();
         }
         postInvalidate();
     }
-
 
     public void add(T graphic) {
         synchronized (mLock) {
@@ -122,7 +116,6 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
         endY = top;
         super.onSizeChanged(w, h, oldw, oldh);
     }
-
 
     public void remove(T graphic) {
         synchronized (mLock) {
@@ -162,7 +155,8 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
         eraser.setAntiAlias(true);
         eraser.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
 
-        RectF rect = new RectF(left, top, AppUtil.dpToPx(getContext(), rectWidth) + left, AppUtil.dpToPx(getContext(), rectHeight) + top);
+        RectF rect = new RectF(left, top, AppUtil.dpToPx(getContext(), rectWidth) + left,
+                AppUtil.dpToPx(getContext(), rectHeight) + top);
         canvas.drawRoundRect(rect, (float) cornerRadius, (float) cornerRadius, eraser);
 
         // draw horizontal line
