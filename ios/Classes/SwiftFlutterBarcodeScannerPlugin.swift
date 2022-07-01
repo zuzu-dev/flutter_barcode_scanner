@@ -1,9 +1,9 @@
 import Flutter
 import UIKit
 import AVFoundation
-import AudioToolbox
 
 enum ScanMode:Int{
+    case QR
     case BARCODE
     case DEFAULT
     
@@ -21,8 +21,7 @@ public class SwiftFlutterBarcodeScannerPlugin: NSObject, FlutterPlugin, ScanBarc
     var pendingResult:FlutterResult!
     public static var isContinuousScan:Bool=false
     static var barcodeStream:FlutterEventSink?=nil
-    public static var scanMode = ScanMode.BARCODE.index
-    
+    public static var scanMode = ScanMode.QR.index
     
     
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -80,9 +79,15 @@ public class SwiftFlutterBarcodeScannerPlugin: NSObject, FlutterPlugin, ScanBarc
             SwiftFlutterBarcodeScannerPlugin.isContinuousScan = false
         }
         
-       
-            SwiftFlutterBarcodeScannerPlugin.scanMode = ScanMode.BARCODE.index
-   
+        if let scanModeReceived = args["scanMode"] as? Int {
+            if scanModeReceived == ScanMode.DEFAULT.index {
+                SwiftFlutterBarcodeScannerPlugin.scanMode = ScanMode.QR.index
+            }else{
+                SwiftFlutterBarcodeScannerPlugin.scanMode = scanModeReceived
+            }
+        }else{
+            SwiftFlutterBarcodeScannerPlugin.scanMode = ScanMode.QR.index
+        }
         
         pendingResult=result
         let controller = BarcodeScannerViewController()
@@ -155,7 +160,7 @@ class BarcodeScannerViewController: UIViewController {
                                       AVMetadataObject.ObjectType.itf14,
                                       AVMetadataObject.ObjectType.dataMatrix,
                                       AVMetadataObject.ObjectType.interleaved2of5,
-                                      ]
+                                      AVMetadataObject.ObjectType.qr]
     public var delegate: ScanBarcodeDelegate? = nil
     private var captureSession = AVCaptureSession()
     private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
@@ -170,7 +175,7 @@ class BarcodeScannerViewController: UIViewController {
     var screenHeight:CGFloat = 0
     let captureMetadataOutput = AVCaptureMetadataOutput()
     private let photoOutput = AVCapturePhotoOutput()
-    public  var barcode="--";
+    public  var barcode="12345.jpeg";
 
 private var isCapturing = false
     
@@ -203,15 +208,15 @@ private var isCapturing = false
     }()
     
     /// Create and return switch camera button
-    // private lazy var switchCameraButton : UIButton! = {
-    //     let button = UIButton()
+    private lazy var switchCameraButton : UIButton! = {
+        let button = UIButton()
         
-    //     button.translatesAutoresizingMaskIntoConstraints = false
-    //     button.setImage(UIImage(named: "ic_switch_camera", in: Bundle(for: SwiftFlutterBarcodeScannerPlugin.self), compatibleWith: nil),for: .normal)
-    //     button.addTarget(self, action: #selector(BarcodeScannerViewController.switchCameraButtonClicked), for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(UIImage(named: "ic_switch_camera", in: Bundle(for: SwiftFlutterBarcodeScannerPlugin.self), compatibleWith: nil),for: .normal)
+        button.addTarget(self, action: #selector(BarcodeScannerViewController.switchCameraButtonClicked), for: .touchUpInside)
         
-    //     return button
-    // }()
+        return button
+    }()
     
     
     /// Create and return cancel button
@@ -242,10 +247,10 @@ private var isCapturing = false
     // Init UI components needed
     func initUIComponents(){
         if isOrientationPortrait {
-            screenHeight = (CGFloat) (screenSize.width * 0.5)
+            screenHeight = (CGFloat)((SwiftFlutterBarcodeScannerPlugin.scanMode == ScanMode.QR.index) ? (screenSize.width * 0.8) : (screenSize.width * 0.5))
             
         } else {
-            screenHeight = (CGFloat) (screenSize.height * 0.5)
+            screenHeight = (CGFloat)((SwiftFlutterBarcodeScannerPlugin.scanMode == ScanMode.QR.index) ? (screenSize.height * 0.6) : (screenSize.height * 0.5))
         }
         
         
@@ -273,19 +278,13 @@ private var isCapturing = false
             }
             // Initialize a AVCaptureMetadataOutput object and set it as the output device to the capture session.
             
-            if captureSession.canSetSessionPreset(AVCaptureSession.Preset.hd1280x720){
-                captureSession.sessionPreset=AVCaptureSession.Preset.hd1280x720;
-            }
-            
             let captureRectWidth = self.isOrientationPortrait ? (screenSize.width*0.8):(screenSize.height*0.8)
             
             captureMetadataOutput.rectOfInterest = CGRect(x: xCor, y: yCor, width: captureRectWidth, height: screenHeight)
             if captureSession.outputs.isEmpty {
-                
                 captureSession.addOutput(captureMetadataOutput)
                 captureSession.addOutput(photoOutput)
             }
-            
             // Set delegate and use the default dispatch queue to execute the call back
             captureMetadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
             captureMetadataOutput.metadataObjectTypes = supportedCodeTypes
@@ -358,7 +357,7 @@ private var isCapturing = false
             qrCodeFrameView.layoutSubviews()
             qrCodeFrameView.setNeedsUpdateConstraints()
             self.view.bringSubviewToFront(cancelButton)
-            // self.view.bringSubviewToFront(switchCameraButton)
+            self.view.bringSubviewToFront(switchCameraButton)
         }
         setConstraintsForControls()
         self.drawLine()
@@ -370,7 +369,7 @@ private var isCapturing = false
         self.view.addSubview(bottomView)
         self.view.addSubview(cancelButton)
         self.view.addSubview(flashIcon)
-        // self.view.addSubview(switchCameraButton)
+        self.view.addSubview(switchCameraButton)
         
         bottomView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant:0).isActive = true
         bottomView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant:0).isActive = true
@@ -388,11 +387,11 @@ private var isCapturing = false
         cancelButton.bottomAnchor.constraint(equalTo:view.bottomAnchor,constant: 0).isActive=true
         cancelButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant:10).isActive = true
         
-        // switchCameraButton.translatesAutoresizingMaskIntoConstraints = false
+        switchCameraButton.translatesAutoresizingMaskIntoConstraints = false
         // A little bit to the right.
-        // switchCameraButton.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 10).isActive = true
-        // switchCameraButton.heightAnchor.constraint(equalToConstant: 70.0).isActive = true
-        // switchCameraButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: 0).isActive = true
+        switchCameraButton.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 10).isActive = true
+        switchCameraButton.heightAnchor.constraint(equalToConstant: 70.0).isActive = true
+        switchCameraButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: 0).isActive = true
     }
     
     /// Flash button click event listener
@@ -479,23 +478,23 @@ private var isCapturing = false
     }
     
     /// Switch camera button click event listener
-    // @IBAction private func switchCameraButtonClicked() {
-    //     // Get the current active input.
-    //     guard let currentInput = captureSession.inputs.first as? AVCaptureDeviceInput else { return }
-    //     let newPosition = getInversePosition(position: currentInput.device.position);
-    //     guard let device = getCaptureDeviceByPosition(position: newPosition) else { return }
-    //     do {
-    //         let newInput = try AVCaptureDeviceInput(device: device)
-    //         // Replace current input with the new one.
-    //         captureSession.removeInput(currentInput)
-    //         captureSession.addInput(newInput)
-    //         // Disable flash by default
-    //         setFlashStatus(device: device, mode: .off)
-    //     } catch let error {
-    //         print(error)
-    //         return
-    //     }
-    // }
+    @IBAction private func switchCameraButtonClicked() {
+        // Get the current active input.
+        guard let currentInput = captureSession.inputs.first as? AVCaptureDeviceInput else { return }
+        let newPosition = getInversePosition(position: currentInput.device.position);
+        guard let device = getCaptureDeviceByPosition(position: newPosition) else { return }
+        do {
+            let newInput = try AVCaptureDeviceInput(device: device)
+            // Replace current input with the new one.
+            captureSession.removeInput(currentInput)
+            captureSession.addInput(newInput)
+            // Disable flash by default
+            setFlashStatus(device: device, mode: .off)
+        } catch let error {
+            print(error)
+            return
+        }
+    }
     
     private func getCaptureDeviceFromCurrentSession(session: AVCaptureSession) -> AVCaptureDevice? {
         // Get the current active input.
@@ -536,10 +535,13 @@ private var isCapturing = false
         
         var stopY:CGFloat
         
-
+        if SwiftFlutterBarcodeScannerPlugin.scanMode == ScanMode.QR.index {
+            let w = self.isOrientationPortrait ? (screenSize.width*0.8) : (screenSize.height*0.6)
+            stopY = (yCor + w)
+        } else {
             let w = self.isOrientationPortrait ? (screenSize.width * 0.5) : (screenSize.height * 0.5)
             stopY = (yCor + w)
-
+        }
         scanlineStopY = stopY
     }
     
@@ -591,57 +593,22 @@ let outputImage = UIGraphicsGetImageFromCurrentImageContext()
 /// Extension for view controller
 extension BarcodeScannerViewController: AVCaptureMetadataOutputObjectsDelegate,AVCapturePhotoCaptureDelegate  {
     public  func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-
-
-     
         isCapturing = false
         if let imageData = photo.fileDataRepresentation(){
-          
             let image = UIImage(data: imageData)
-           
             let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
- 
-            let filename = paths[0].appendingPathComponent(barcode+".jpeg")
-            
+            let filename = paths[0].appendingPathComponent(barcode+".jpg")
             if !FileManager.default.fileExists(atPath: filename.path) {
-                  
                 try? image?.jpegData(compressionQuality: 1)?.write(to: filename)
             }
         }
     }
-
-    public func photoOutput(_ output: AVCapturePhotoOutput, willBeginCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
-            print("[Camera]: Silent sound activated")
-            AudioServicesDisposeSystemSoundID(1108)
-        
-    }
-
-    public func photoOutput(_ output: AVCapturePhotoOutput, willCapturePhotoFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
-            AudioServicesDisposeSystemSoundID(1108)
-    }
-
-     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto resolvedSettings: AVCaptureResolvedPhotoSettings) {
-            AudioServicesDisposeSystemSoundID(1108)
-    }
-     public func photoOutput(_ output: AVCapturePhotoOutput, didCapturePhotoFor resolvedSettings: AVCaptureResolvedPhotoSettings) {
-            AudioServicesDisposeSystemSoundID(1108)
-    }
-    
     public func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
-
-        if barcode != "--"{
-            return
-        }
-
-       
         // Check if the metadataObjects array is not nil and it contains at least one object.
         let photoSettings = AVCapturePhotoSettings()
-         
         if !isCapturing {
             isCapturing = true
             photoOutput.capturePhoto(with: photoSettings, delegate: self)
-            
-
         }else{
             return
         }
@@ -686,10 +653,10 @@ extension BarcodeScannerViewController{
             self.screenSize = UIScreen.main.bounds
             
             if UIDevice.current.orientation == .portrait || UIDevice.current.orientation == .portraitUpsideDown {
-                self.screenHeight = (CGFloat)( (self.screenSize.width * 0.5))
+                self.screenHeight = (CGFloat)((SwiftFlutterBarcodeScannerPlugin.scanMode == ScanMode.QR.index) ? (self.screenSize.width * 0.8) : (self.screenSize.width * 0.5))
                 
             } else {
-                self.screenHeight = (CGFloat)((self.screenSize.height * 0.5))
+                self.screenHeight = (CGFloat)((SwiftFlutterBarcodeScannerPlugin.scanMode == ScanMode.QR.index) ? (self.screenSize.height * 0.6) : (self.screenSize.height * 0.5))
             }
             
             
@@ -786,5 +753,4 @@ func hexStringToUIColor (hex:String) -> UIColor {
         green: gValue,
         blue: bValue,
         alpha: aValue
-    )
-}
+    )}
